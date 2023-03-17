@@ -47,6 +47,7 @@ class Simulate:
         self.amp_band_width = amp_band_width
         self.amp_noise_factor = amp_noise_factor
 
+        # コンストラクタで格子点を作成していることに注意
         self.grid_row, self.grid_col = np.meshgrid(np.arange(0, self.col_grid_size, self.grid_step),
                                                    np.arange(0, self.row_grid_size, self.grid_step))
 
@@ -104,7 +105,8 @@ class Simulate:
 
         # 蛍光ビーズの中心座標をランダムに決定
         # 行方向の位置を決定
-        beads_col = np.random.randint(self.beads_diameter, self.col_grid_size, self.num_beads)
+        # 蛍光ビーズが視野の端につくられないように範囲指定
+        beads_col = np.random.randint(self.beads_diameter, self.col_grid_size-self.beads_diameter, self.num_beads)
         # 列方向の位置を決定
         # beads_row = np.random.randint(0, self.row_grid_size, self.num_beads)
         beads_row = self.row_grid_size - np.random.randint(0, self.row_grid_size, self.num_beads)
@@ -316,7 +318,7 @@ class Simulate:
         signal = quantum_efficiency * np.sum(signal_area * gaussian)
         return signal
 
-    def get_signal_simple(self, beads_matrix, col_pos, row_pos):
+    def get_signal_simple(self, beads_matrix, col_pos, row_pos, count):
         """
         指定された座標を中心に直径self.spot_diameterの範囲から信号を取得する
         :return: 実際の
@@ -326,12 +328,12 @@ class Simulate:
         # 集光スポットが1 µmであり，これはグリッドの10個分に相当する
         # 集光スポットの半径がself.spot_radiusで格子点の間隔はgrid_stepだから
         # 半径のグリッド数spot_radius_scaleはself.spot_radius / self.grid_stepで求められる
-        print("ここからget_signal_simple開始")
+        print("######{0}回目######".format(count))
         spot_radius_scale = int(self.spot_radius / self.grid_step)
         # print("spot_radius_scale: ", spot_radius_scale)
 
         signal_area_value = beads_matrix[col_pos * 10, row_pos * 10]
-        print("中心座標({0}, {1})の輝度値: {2}".format(col_pos, row_pos, signal_area_value))
+        print("中心({0}, {1}): {2}".format(col_pos, row_pos, signal_area_value))
 
         # signal_areaは集光点のサイズをbeads_matrixにあてはめた状態
         signal_area = beads_matrix[col_pos*10-spot_radius_scale:col_pos*10+spot_radius_scale,
@@ -346,7 +348,8 @@ class Simulate:
         circle_indices = np.where((x - spot_radius_scale)**2 + (y - spot_radius_scale)**2 <= spot_radius_scale**2)
         # print("signal_area.min", signal_area.min())
         signal = np.mean(signal_area[circle_indices])
-        print("これでget_signal_simple終了")
+        print("signal: {0}".format(signal))
+        print("###############")
         return signal
 
     def get_signal_and_judge_threshold(self, x, y):

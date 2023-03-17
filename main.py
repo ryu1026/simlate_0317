@@ -2,57 +2,14 @@ import math
 import numpy as np
 from numpy import ndarray
 from simulation import Simulate
-
-
-def random_walk(col_pre, row_pre, dist='int'):
-    if dist == 'nom':
-        col_pre += np.random.normal(scale=30)
-        row_pre += np.random.normal(scale=30)
-        col_next: ndarray = np.clip(col_pre, 0, 90)
-        row_next: ndarray = np.clip(row_pre, 0, 90)
-        return col_next, row_next
-
-    if dist == 'uni':
-        x_next = np.random.uniform(0, 100)
-        y_next = np.random.uniform(0, 100)
-
-        return x_next, y_next
-
-    if dist == 'int':
-        col_pre += np.random.randint(10, 90)
-        row_pre += np.random.normal(10, 90)
-        col_next: ndarray = np.clip(col_pre, 0, 90)
-        row_next: ndarray = np.clip(row_pre, 0, 90)
-        return col_next, row_next
-
-
-def make_triangle_pos(col_pre_pos, row_pre_pos, pre_intensity=100, triangle_radius=5):
-    """
-    閾値を上回った座標を中心とした3点の座標
-
-    :param col_pre_pos: 前の集光点のy座標
-    :param row_pre_pos: 前の集光点のx座標
-    :param pre_intensity: 前の集光点の強度
-    :param triangle_radius: 3点計測 (三角形) の外接円の半径
-
-    :return:　x_list, y_list
-    """
-    col_list = []
-    row_list = []
-    # 閾値を上回った座標を中心に3点
-    for i in range(0, 3):
-        col = col_pre_pos + triangle_radius * np.cos(2 * i * np.pi / 3)
-        row = row_pre_pos + triangle_radius * np.sin(2 * i * np.pi / 3)
-        col_list.append(col)
-        row_list.append(row)
-    return col_list, row_list
+from make_spot_pos import random_walk, make_triangle_pos
 
 
 sim = Simulate(num_beads=3, grid_step=0.1, spot_diameter=1)
 
 # 蛍光ビーズの空間を作成
 beads_matrix, beads_col, beads_row = sim.make_not_gaussian_beads(do_print=True)
-
+print("\n")
 # 蛍光ビーズの空間を描画する
 sim.draw_not_gaussian_beads(not_gaussian_beads=beads_matrix)
 
@@ -62,25 +19,31 @@ col_first = beads_col[0]
 row_first = beads_row[0]
 col_next = col_first
 row_next = row_first
+
 random_walk_threshold = 0.1  # ランダムウォーク時に用いる閾値
 over_keikou_threshold = 0.1
+
 count = 0  # とりあえずループのカウンタ
 max_count = 3
-signal = 0
+signal = 0    # signalの初期値
 
 trajectory_col = []
 trajectory_row = []
 trajectory_col.append(col_first)
 trajectory_row.append(row_first)
+
 i = 0
+
 # 閾値を超えるまでランダムウォーク
-print("ランダムウォーク開始")
-print("ランダムウォーク開始座標: {0}, {1}".format(int(col_next), int(row_next)))
+print("ランダムウォーク開始座標: ({0}, {1})".format(int(col_next), int(row_next)))
+
+# 信号が閾値よりも小さい限りランダムウォークを続ける
 while signal <= random_walk_threshold:
-    # はじめのランダムウォークはx_first, yを与えて輝度値を取得
+    # はじめのランダムウォークはx_first, y_firstを与えて輝度値を取得
     i += 1
-    signal = sim.get_signal_simple(beads_matrix, int(col_next), int(row_next))
-    print("{0}回目のsignal: {1}".format(i, signal))
+    # 信号取得 (col_next, row_next)を中心にスポットを作成してスポットの内部の信号の平均値を取得
+    signal = sim.get_signal_simple(beads_matrix, int(col_next), int(row_next), i)
+    # print("{0}回目のsignal: {1}".format(i, signal))
     if signal >= random_walk_threshold:
         break
     col_next, row_next = random_walk(col_pre=col_next, row_pre=row_next)
@@ -90,7 +53,7 @@ while signal <= random_walk_threshold:
 
 # 閾値を上回ったときの座標は(x_next, y_next)
 # この点を中心にしたいので変数名をx_pre, y_preにそれぞれ変更
-print("閾値超えたときの座標 (行，列) = ({0}, {1})".format(col_next, row_next))
+print("over threshold at (行，列) = ({0}, {1})".format(col_next, row_next))
 col_pre = col_next
 row_pre = row_next
 col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)  # 3点の集光点座標を返す
@@ -101,13 +64,13 @@ for i in range(len(col_list)):
 # 座標をもとに3点順に集光，輝度値計測
 # 輝度値のリスト signal_list を返してもらう?
 print("3点計測開始")
+print("\n")
 while count < max_count:
     count += 1
     signal_list = []
     # ここで閾値検出後最初の計測 get_signal(x_list, y_list)
     for i in range(len(col_list)):
-        signal = sim.get_signal_simple(beads_matrix, int(col_list[i]), int(row_list[i]))
-        print("signal", signal)
+        signal = sim.get_signal_simple(beads_matrix, int(col_list[i]), int(row_list[i]), count+i)
         signal_list.append(signal)
     # signalを返してもらう signal_list = [sig0, sig1, sig2]
     # ここで蛍光検出数について条件分岐を挟む
