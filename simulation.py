@@ -23,7 +23,7 @@ class Simulate:
                  photomul_quantum_efficiency=0.4,
                  amp_gain=200,
                  amp_band_width=10e6,
-                 amp_noise_factor=2):
+                 amp_noise_factor=2) -> object:
 
         self.num_beads = num_beads
         self.beads_diameter = beads_diameter
@@ -109,7 +109,8 @@ class Simulate:
         beads_col = np.random.randint(self.beads_diameter, self.col_grid_size-self.beads_diameter, self.num_beads)
         # 列方向の位置を決定
         # beads_row = np.random.randint(0, self.row_grid_size, self.num_beads)
-        beads_row = self.row_grid_size - np.random.randint(0, self.row_grid_size, self.num_beads)
+        beads_row = np.random.randint(self.beads_diameter, self.row_grid_size-self.beads_diameter,
+                                                           self.num_beads)
         mask = np.zeros_like(self.grid_row)
         # clipped_mask = np.zeros_like(self.grid_col)
 
@@ -122,6 +123,50 @@ class Simulate:
             # 現在のビーズの中心からself.beads_diameter/2 よりも近い全てのグリッド点で1に更新される
             mask += dist < (self.beads_diameter / 2)
             beads_matrix = np.clip(mask, 0., 1.)
+
+        return beads_matrix, beads_col, beads_row
+
+    def make_not_gaussian_beads_not_overlap(self, do_print=False):
+        """
+        ガウシアンでない蛍光ビーズを作成する
+        このメソッドは蛍光ビーズ同士がオーバーラップしないように作成している
+        ビーズ内の蛍光体の分布は一様である事に注意
+
+        :param do_print: bool 蛍光ビーズの座標を表示するかどうか (Excelに書き出す?)
+        :return beads_matrix: numpy.ndarray (x_grid_size, y_grid_size)で0か1の値が乗っている
+        """
+        beads_col = []
+        beads_row = []
+        # 蛍光ビーズの中心座標をランダムに決定
+        # 行方向の位置を決定
+        # 蛍光ビーズが視野の端につくられないように範囲指定
+        while len(beads_col) < self.num_beads:
+            bead_col = np.random.randint(self.beads_diameter, self.col_grid_size - self.beads_diameter)
+            bead_row = self.row_grid_size - np.random.randint(self.beads_diameter, self.row_grid_size-self.beads_diameter)
+
+            # 作成した点が蛍光ビーズの直径よりも大きい必要がある
+            too_close = False
+            for pre_col, pre_row in zip(beads_col, beads_row):
+                if np.sqrt((bead_col - pre_col)**2 + (bead_row - pre_row)**2) < self.beads_diameter + 3:
+                    too_close = True
+                    break
+
+            if not too_close:
+                beads_col.append(bead_col)
+                beads_row.append(bead_row)
+
+        mask = np.zeros_like(self.grid_row)
+        # clipped_mask = np.zeros_like(self.grid_col)
+
+        for bead_col, bead_row in zip(beads_col, beads_row):
+            if do_print:
+                # print("beads_pos: (行, 列) = ({0}, {1})".format(bead_col, abs(self.row_grid_size - bead_row)))
+                print("beads_pos: (行, 列) = ({0}, {1}) = (y, x)".format(bead_col, bead_row))
+            # ランダムに決定した中心と格子点の距離を計算
+            dist = np.sqrt((self.grid_col - bead_col) ** 2 + (self.grid_row - bead_row) ** 2)
+            # 現在のビーズの中心からself.beads_diameter/2 よりも近い全てのグリッド点で1に更新される
+            mask += dist < (self.beads_diameter / 2)
+        beads_matrix = np.clip(mask, 0., 1.)
 
         return beads_matrix, beads_col, beads_row
 
@@ -321,6 +366,10 @@ class Simulate:
     def get_signal_simple(self, beads_matrix, col_pos, row_pos, count):
         """
         指定された座標を中心に直径self.spot_diameterの範囲から信号を取得する
+        :param count: 実際の照射位置
+        :param row_pos: x
+        :param col_pos:
+        :param beads_matrix:
         :return: 実際の
         """
         # スライス時には整数で範囲を指定する必要がある．
@@ -328,19 +377,19 @@ class Simulate:
         # 集光スポットが1 µmであり，これはグリッドの10個分に相当する
         # 集光スポットの半径がself.spot_radiusで格子点の間隔はgrid_stepだから
         # 半径のグリッド数spot_radius_scaleはself.spot_radius / self.grid_stepで求められる
-        print("######{0}回目######".format(count))
+        # print("######{0}回目######".format(count))
         spot_radius_scale = int(self.spot_radius / self.grid_step)
         # print("spot_radius_scale: ", spot_radius_scale)
 
         signal_area_value = beads_matrix[col_pos * 10, row_pos * 10]
-        print("中心({0}, {1}): {2}".format(col_pos, row_pos, signal_area_value))
+        # print("照射位置({0}, {1}): {2}".format(col_pos, row_pos, signal_area_value))
 
         # signal_areaは集光点のサイズをbeads_matrixにあてはめた状態
         signal_area = beads_matrix[col_pos*10-spot_radius_scale:col_pos*10+spot_radius_scale,
                                    row_pos*10-spot_radius_scale:row_pos*10+spot_radius_scale]
 
         # print("signal_area.shape (10, 10)になるはず", signal_area.shape)
-        print("signal_area.max", signal_area.max())
+        # print("signal_area.max", signal_area.max())
 
         # signal_area (10×10)に内接する円の平均シグナルをとる
         grid_size = 10
@@ -348,10 +397,20 @@ class Simulate:
         circle_indices = np.where((x - spot_radius_scale)**2 + (y - spot_radius_scale)**2 <= spot_radius_scale**2)
         # print("signal_area.min", signal_area.min())
         signal = np.mean(signal_area[circle_indices])
-        print("signal: {0}".format(signal))
-        print("###############")
+        # print("signal: {0}".format(signal))
+        # print("###############")
         return signal
 
+    def calculate_error(self, beads_matrix, col_pos, row_pos):
+        """
+        3点計測の中心座標とビーズの中心との距離を求める関数
+        指定した座標と実際のグリッド間の距離を考慮する必要がある
+
+        :param beads_matrix:
+        :param col_pos:
+        :param row_pos:
+        :return:
+        """
     def get_signal_and_judge_threshold(self, x, y):
         # 光を(x,y)に当てて蛍光をPMTで収集→Ampで増幅
         """
