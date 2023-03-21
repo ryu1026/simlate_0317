@@ -110,7 +110,7 @@ class Simulate:
         # 列方向の位置を決定
         # beads_row = np.random.randint(0, self.row_grid_size, self.num_beads)
         beads_row = np.random.randint(self.beads_diameter, self.row_grid_size-self.beads_diameter,
-                                                           self.num_beads)
+                                      self.num_beads)
         mask = np.zeros_like(self.grid_row)
         # clipped_mask = np.zeros_like(self.grid_col)
 
@@ -147,7 +147,8 @@ class Simulate:
             # 作成した点が蛍光ビーズの直径よりも大きい必要がある
             too_close = False
             for pre_col, pre_row in zip(beads_col, beads_row):
-                if np.sqrt((bead_col - pre_col)**2 + (bead_row - pre_row)**2) < self.beads_diameter + 3:
+                # 蛍光ビーズの直径よりも離れた空間点で閾値を超える蛍光信号が検出された場合にはランダムウォーク，3点計測を行う
+                if np.sqrt((bead_col - pre_col)**2 + (bead_row - pre_row)**2) < 2 * self.beads_diameter:
                     too_close = True
                     break
 
@@ -198,7 +199,7 @@ class Simulate:
 
         return beads_matrix
 
-    def draw_not_gaussian_beads(self, not_gaussian_beads):
+    def draw_not_gaussian_beads(self, not_gaussian_beads) -> object:
 
         fig, ax = plt.subplots()
         ax.imshow(not_gaussian_beads, cmap='gray', interpolation='nearest',

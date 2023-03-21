@@ -1,9 +1,8 @@
-import math
 import sys
-
-from make_spot_pos import random_walk, make_triangle_pos
+import math
+from to_csv import log_random_walk, log_csv
 from simulation import Simulate
-from to_csv import log_random_walk, log_triangle
+from make_spot_pos import random_walk, make_triangle_pos, log_signal_spot
 
 sim = Simulate(num_beads=10, grid_step=0.1, spot_diameter=1)
 
@@ -29,18 +28,7 @@ over_keikou_threshold = 0.1
 
 count = 0  # とりあえずループのカウンタ
 max_count = 100
-signal = 0    # signalの初期値
-
-# 実際の計測点を記録する
-# 3点計測時も実際の点を記録するから別に要らない
-# 中心座標だけ記録しておけばあとでいくらでも復元可能
-make_log_all_spot = False
-if make_log_all_spot:
-    trajectory_col = []
-    trajectory_row = []
-    trajectory_col.append(col_first)
-    trajectory_row.append(row_first)
-
+signal = 0  # signalの初期値
 
 # 閾値を超えるまでランダムウォーク
 print("ランダムウォーク開始座標: ({0}, {1})".format(int(col_next), int(row_next)))
@@ -63,12 +51,10 @@ while signal <= random_walk_threshold and count < max_random_walk:
     random_row.append(row_next)
     print("ランダムウォーク座標更新 (行, 列)", int(col_next), int(row_next))
 
-
 if count >= max_random_walk:
     print("ランダムウォークの最大回数に到達しました")
     print("プログラムを終了します")
     sys.exit()
-
 
 # 閾値を上回ったときの座標は(x_next, y_next)
 # この点を中心にしたいので変数名をx_pre, y_preにそれぞれ変更
@@ -84,13 +70,6 @@ trajectory_col_center.append(col_pre)
 trajectory_row_center.append(row_pre)
 
 col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)  # 3点の集光点座標を返す
-
-if make_log_all_spot:
-    for i in range(len(col_list)):
-        trajectory_col.append(col_list[i])
-        trajectory_row.append(row_list[i])
-        # print("照射座標 ({0}, {1})".format(col_list[i], row_list[i]))
-
 
 # 座標をもとに3点順に集光，輝度値計測
 # 輝度値のリスト signal_list を返してもらう?
@@ -124,13 +103,6 @@ while count < max_count:
 
         # 次の集光点を決定 = 前と同じ
         col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)
-        # 実際の集光地点を記録
-        # もしログを取るなら記録する
-        # 実際は中心座標のログで十分
-        if make_log_all_spot:
-            for i in range(len(col_list)):
-                trajectory_col.append(col_list[i])
-                trajectory_row.append(row_list[i])
 
     elif len_over_list == 1:
         # 3点計測のうち1点だけ高い輝度値が得られた
@@ -149,10 +121,6 @@ while count < max_count:
 
         # 3点計測の座標リストを返す
         col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)
-        if make_log_all_spot:
-            for i in range(len(col_list)):
-                trajectory_col.append(col_list[i])
-                trajectory_row.append(row_list[i])
 
     elif len_over_list == 2:
         # 3点計測のうち2点で高い輝度値が得られた
@@ -172,25 +140,18 @@ while count < max_count:
 
         col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)
 
-        if make_log_all_spot:
-            for i in range(len(col_list)):
-                trajectory_col.append(col_list[i])
-                trajectory_row.append(row_list[i])
-
     else:
         print("閾値を超えたのが3点 -> triangle_radiusが多分小さすぎる")
         print("いったん終了する")
         break
-if make_log_all_spot:
-    print("len(trajectory_row)", len(trajectory_row))
 
 print(len(len_over_list_list))
 print(len(trajectory_col_center))
 print("max_iterationに到達しました")
 print("ランダムウォークの回数: {0}".format(len(random_row)))
 log_random_walk(random_col_list=random_col, random_row_list=random_row, random_signal_list=random_signal)
-log_triangle(col_center_list=trajectory_col_center[:-1], row_center_list=trajectory_row_center[:-1],
-             len_over_list_list=len_over_list_list, filename="test")
+log_csv(col_center_list=trajectory_col_center[:-1], row_center_list=trajectory_row_center[:-1],
+        len_over_list_list=len_over_list_list)
 draw_beads = True
 # 蛍光ビーズの空間を描画する
 for bead_col, bead_row in zip(beads_col, beads_row):
