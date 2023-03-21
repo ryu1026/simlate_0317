@@ -21,7 +21,7 @@ if draw_beads:
 # 信号が閾値よりも小さい限りランダムウォークを続ける
 # 閾値を上回った時に同じ細胞を追跡していないかチェックする機構が必要
 # あるいは次の呼び出し時に，閾値を超えた座標よりかなり離れた地点を指定する?
-def do_random_walk(col0, row0, try_count):
+def do_random_walk(col0, row0, try_count, max_count_random_walk=100):
     """
     実際にランダムウォークを実施する関数
     閾値を上回った時点で終了する
@@ -43,8 +43,6 @@ def do_random_walk(col0, row0, try_count):
     random_row.append(row0)
     # ランダムウォークのシグナルの閾値
     random_walk_signal_threshold = 0.1
-    # ランダムウォークの最高iteration (無限ループにならないように)
-    max_count_random_walk = 100
     # シグナルを格納するリスト
     random_signal = []
 
@@ -73,6 +71,7 @@ def do_random_walk(col0, row0, try_count):
         print("ランダムウォークの最大回数に到達しました")
         print("いったん終了します")
         exit()
+
 
 # 閾値検出後はすぐに3点計測
 # 内部でdo_random_walkも継続しないといけない?
@@ -177,16 +176,28 @@ def do_triangle(col0, row0, try_count):
 # do_random_walkからは閾値を検出した時の座標が返ってくる
 # do_triangleは閾値を検出したときの座標を初期位置としてlen_over_list=0の時の中心座標を返す
 # ランダムウォークの初期位置
-
-
-# Define the number of elements and the range of values
-tracking_max_num = 4
+tracking_max_num = 3
 start_value = 20
 end_value = 80
 col_pos_list = np.linspace(start_value, end_value, tracking_max_num).tolist()
 row_pos_list = np.linspace(start_value, end_value, tracking_max_num).tolist()
+after_triangle_col, after_triangle_row = [], []
+over_threshold_num = 0
+col_list, row_list = [], []
 
+# とりあえずランダムウォークして閾値越えを3点見つける
+while over_threshold_num < 3:
+    col1, row1 = do_random_walk(col0=int(col_pos_list[over_threshold_num]), row0=int(row_pos_list[over_threshold_num]), try_count=over_threshold_num+1)
+    col_list.append(col1)
+    row_list.append(row1)
+    over_threshold_num += 1
 
-for j in range(len(col_pos_list)):
-    col1, row1 = do_random_walk(col0=int(col_pos_list[j]), row0=int(row_pos_list[j]), try_count=j + 1)
-    col2, row2 = do_triangle(col0=col1, row0=row1, try_count=j + 1)
+# 3点計測をそれぞれの閾値に対して順に実施
+for j in range(len(col_list)):
+    col, row = do_triangle(col_list[j], row_list[j], try_count=j+1)
+    after_triangle_col.append(col)
+    after_triangle_row.append(row)
+
+# 位置推定完了後に追跡開始
+# 追跡時の初期座標はafter_triangle_col, after_triangle_rowに格納してある
+
