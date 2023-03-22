@@ -251,12 +251,14 @@ class Simulate:
         fig, ax = plt.subplots()
         ax.imshow(not_gaussian_beads, cmap='gray', interpolation='nearest',
                   extent=(0, self.col_grid_size, 0, self.row_grid_size))
-        ax.set_xlabel("row [µm]")
-        ax.set_ylabel("col [µm]")
-        ax.set_title("Fluorescent beads")
+        ax.set_xlabel("x [µm]", fontname='MS Gothic', fontsize=18)
+        ax.set_ylabel("y [µm]", fontname='MS Gothic', fontsize=18)
+        ax.set_title("蛍光ビーズ",fontname='MS Gothic', fontsize=20)
         # ax.xaxis.set_ticks_position('top')
         # ax.xaxis.set_label_position('top')
         # ax.invert_yaxis()
+        plt.tick_params(labelsize=14)
+        plt.tight_layout()
         plt.show()
 
     def draw_not_gaussian_beads_invert_y(self, not_gaussian_beads):

@@ -21,7 +21,7 @@ print(data_triangle_after_rest_3_pd.describe())
 # print(np.mean(data))
 
 fig, ax = plt.subplots(figsize=(8, 4))
-ax.boxplot((data_triangle_after_rest_3, data_triangle_3, data_random), vert=False, notch=True, patch_artist=True,
+ax.boxplot(data_random, vert=False, notch=True, patch_artist=True,
            boxprops=dict(facecolor='lightblue', edgecolor='black', linewidth=1.5),
            whiskerprops=dict(color='black', linewidth=1.5),
            capprops=dict(color='black', linewidth=1.5),
@@ -45,6 +45,6 @@ ax.tick_params(labelbottom=True, labelleft=True, labelright=False, labeltop=Fals
 # Show the plot
 #
 plt.tick_params(labelsize=18)
-ax.set_yticklabels(['3秒経過後', '3点計測時', 'ランダム時'], fontname='MS Gothic', fontsize=18)
+ax.set_yticklabels(['ランダム時'], fontname='MS Gothic', fontsize=18)
 plt.tight_layout()
 plt.show()
