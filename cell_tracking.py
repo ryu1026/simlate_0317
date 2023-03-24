@@ -2,15 +2,19 @@ import math
 from sys import exit
 import numpy as np
 import matplotlib.pyplot as plt
-
+import cv2
 from make_spot_pos import random_walk, make_triangle_pos
 from simulation import Simulate
 from to_csv import log_random_walk, log_triangle
 
 sim = Simulate(num_beads=10, grid_step=0.1, spot_diameter=1, do_print=False)
 # animationを表示しないときはこの行
-sim.draw_not_gaussian_beads(sim.beads_matrix)
+# sim.draw_not_gaussian_beads(sim.beads_matrix)
+initial_beads = sim.beads_matrix
+sim.draw_not_gaussian_beads(initial_beads)
+print("type of initial_beads", initial_beads.dtype)
 
+cv2.imwrite('initial_beads_2.tiff', initial_beads)
 # animationを表示するときはこの行
 # fig, ax = plt.subplots()
 # im = ax.imshow(sim.beads_matrix, cmap='gray', interpolation='nearest',
