@@ -256,19 +256,20 @@ for j in range(len(col_list)):
 print("random_num:{0}, triangle_num:{1}, total_num: {2}".format(random_num, total_num-random_num, total_num))
 
 # print("len(after_triangle_row", len(after_triangle_row))
-sim.draw_not_gaussian_beads(initial_beads)
-# # ビーズを3時刻分移動
-# for i in range(3):
-#     beads_matrix = shift_beads_matrix(beads_matrix, 10)
-#
-#
-# # 位置推定完了後に追跡開始
-# # 追跡時の初期座標はafter_triangle_col, after_triangle_rowに格納してある
-# print("Start tracking!!\n")
-# tracking_col, tracking_row = [], []
-# for j in range(len(col_list)):
-#     col, row, beads_matrix, total_num = do_triangle(after_triangle_col[j], after_triangle_row[j], beads_matrix=beads_matrix, total_num=total_num, try_count=j+4)
-#     after_triangle_col.append(col)
-#     after_triangle_row.append(row)
+# 10sim.draw_not_gaussian_beads(initial_beads)
+
+# ビーズを3時刻分移動
+for i in range(3):
+    beads_matrix = shift_beads_matrix(beads_matrix, 10)
+
+
+# 位置推定完了後に追跡開始
+# 追跡時の初期座標はafter_triangle_col, after_triangle_rowに格納してある
+print("Start tracking!!\n")
+tracking_col, tracking_row = [], []
+for j in range(len(col_list)):
+    col, row, beads_matrix, total_num = do_triangle(after_triangle_col[j], after_triangle_row[j], beads_matrix=beads_matrix, total_num=total_num, try_count=j+4)
+    after_triangle_col.append(col)
+    after_triangle_row.append(row)
 
 # sim.draw_not_gaussian_beads(beads_matrix)
