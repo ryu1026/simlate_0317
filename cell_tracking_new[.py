@@ -3,7 +3,7 @@ from sys import exit
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from make_spot_pos import random_walk, make_triangle_pos
+from make_spot_pos import random_walk, make_triangle_pos, make_triangle_pos_inverse
 from simulation import Simulate
 from to_csv import log_random_walk, log_triangle
 
@@ -50,7 +50,7 @@ def do_random_walk(col0, row0, beads_matrix, try_count, total_num=0, max_count_r
     :return:
     """
     # 閾値を超えるまでランダムウォーク
-    print("ランダムウォーク開始座標: ({0}, {1})".format(int(col0), int(row0)))
+    # print("ランダムウォーク開始座標: ({0}, {1})".format(int(col0), int(row0)))
     # 単純なループカウンタ
     count = 0
     # ランダムウォークの初期値
@@ -80,7 +80,7 @@ def do_random_walk(col0, row0, beads_matrix, try_count, total_num=0, max_count_r
         # 閾値を上回ったらcsvファイルに軌跡を書き込み，座標を返して終了
         if _signal >= random_walk_signal_threshold:
             log_random_walk(random_col_list=random_col, random_row_list=random_row,
-                            random_signal_list=random_signal, filename=try_count)
+                            random_signal_list=random_signal, total_num=total_num, filename=try_count)
             # print("count", count)
             return _col_next, _row_next, beads_matrix, total_num
 
@@ -124,12 +124,11 @@ def do_triangle(col0, row0, beads_matrix, try_count, total_num):
     count = 0
     max_count = 100
     len_over_list_list = []  # over_listの要素数を格納するリスト
-
+    zero_count = 0
     # とりあえずcountの上限を設定して無限ループを避ける
     while count < max_count:
         count += 1
         total_num += 1
-
         if total_num % 3 == 0:
             beads_matrix = shift_beads_matrix(beads_matrix, 10)
         signal_list = []
@@ -146,16 +145,21 @@ def do_triangle(col0, row0, beads_matrix, try_count, total_num):
         # print("\n")
 
         if len_over_list == 0:
+            zero_count += 1
             # 蛍光検出数が0
             # この時は座標を特定できたとしてcsvに書き込んで終了する
             # 戻り値はこの時の座標
+            # この時は中心そのままで逆条件で照射
+            if zero_count == 1:
+                trajectory_row_center.append(row_pre)
+                trajectory_col_center.append(col_pre)
+                col_list, row_list = make_triangle_pos_inverse(col_pre_pos=col_pre, row_pre_pos=row_pre)
 
-            trajectory_row_center.append(row_pre)
-            trajectory_col_center.append(col_pre)
-            log_triangle(col_center_list=trajectory_col_center[:-1], row_center_list=trajectory_row_center[:-1],
-                         len_over_list_list=len_over_list_list, filename=try_count)
-            print("count", count)
-            return trajectory_col_center[-1], trajectory_row_center[-1], beads_matrix, total_num
+            elif zero_count == 2:
+                log_triangle(col_center_list=trajectory_col_center, row_center_list=trajectory_row_center,
+                             len_over_list_list=len_over_list_list, total_num=total_num, filename=try_count)
+                print("count", count)
+                return trajectory_col_center[-1], trajectory_row_center[-1], beads_matrix, total_num
 
         elif len_over_list == 1:
             # 3点計測のうち1点だけ高い輝度値が得られた
@@ -174,6 +178,7 @@ def do_triangle(col0, row0, beads_matrix, try_count, total_num):
 
             # 3点計測の座標リストを返す
             col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)
+            zero_count = 0
 
         elif len_over_list == 2:
             # 3点計測のうち2点で高い輝度値が得られた
@@ -192,6 +197,7 @@ def do_triangle(col0, row0, beads_matrix, try_count, total_num):
             trajectory_row_center.append(row_pre)
 
             col_list, row_list = make_triangle_pos(col_pre_pos=col_pre, row_pre_pos=row_pre)
+            zero_count = 0
 
         else:
             print("閾値を超えたのが3点 -> triangle_radiusが多分小さすぎる")
@@ -221,27 +227,35 @@ print(int(col_pos_list[over_threshold_num]))
 
 while over_threshold_num < 3:
     if over_threshold_num == 0:
-        col1, row1, beads_matrix, total_num = do_random_walk(col0=int(col_pos_list[over_threshold_num]), row0=int(row_pos_list[over_threshold_num]), beads_matrix=beads_matrix, try_count=over_threshold_num+1)
+        col1, row1, beads_matrix, total_num = do_random_walk(col0=int(col_pos_list[over_threshold_num]),
+                                                             row0=int(row_pos_list[over_threshold_num]),
+                                                             beads_matrix=beads_matrix,
+                                                             try_count=over_threshold_num + 1)
         col_list.append(col1)
         row_list.append(row1)
         over_threshold_num += 1
     else:
-        col1, row1, beads_matrix, total_num = do_random_walk(col0=int(col_pos_list[over_threshold_num]), row0=int(row_pos_list[over_threshold_num]), beads_matrix=beads_matrix, total_num=total_num, try_count=over_threshold_num+1)
+        col1, row1, beads_matrix, total_num = do_random_walk(col0=int(col_pos_list[over_threshold_num]),
+                                                             row0=int(row_pos_list[over_threshold_num]),
+                                                             beads_matrix=beads_matrix, total_num=total_num,
+                                                             try_count=over_threshold_num + 1)
         col_list.append(col1)
         row_list.append(row1)
         over_threshold_num += 1
 
 print("Done random_walk!!: ", total_num)
+random_num = total_num
 # 3点計測をそれぞれの閾値に対して順に実施
 # 蛍光検出が終わった時点で0になった時のユーグリッド距離を調べる
 for j in range(len(col_list)):
-    col, row, beads_matrix, total_num = do_triangle(col_list[j], row_list[j], beads_matrix=beads_matrix, total_num=total_num, try_count=j+1)
+    col, row, beads_matrix, total_num = do_triangle(col_list[j], row_list[j], beads_matrix=beads_matrix,
+                                                    total_num=total_num, try_count=j + 1)
     after_triangle_col.append(col)
     after_triangle_row.append(row)
 
-print("total_num", total_num)
+print("random_num:{0}, triangle_num:{1}, total_num: {2}".format(random_num, total_num-random_num, total_num))
 
-print("len(after_triangle_row", len(after_triangle_row))
+# print("len(after_triangle_row", len(after_triangle_row))
 sim.draw_not_gaussian_beads(initial_beads)
 # # ビーズを3時刻分移動
 # for i in range(3):
