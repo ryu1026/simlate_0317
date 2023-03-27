@@ -4,13 +4,19 @@ import tifffile
 import matplotlib.pyplot as plt
 import numpy as np
 
+def shift_beads_matrix(beads_matrix, shift_amount):
+    shifted_beads_matrix = np.roll(beads_matrix, shift=shift_amount, axis=1)
+    return shifted_beads_matrix
 
-image = tifffile.imread('initial_beads_2.tiff')
+
+image = tifffile.imread('initial_beads_0327_2.tif')
+move_image = shift_beads_matrix(image, 110)
+
 print(image.shape)
 print(image.dtype)
 
 fig, ax = plt.subplots()
-ax.imshow(image, cmap='gray', interpolation='nearest')
+ax.imshow(move_image, cmap='gray', interpolation='nearest')
 # ax.set_xlabel("x [µm]", fontname='MS Gothic', fontsize=18)
 # ax.set_ylabel("y [µm]", fontname='MS Gothic', fontsize=18)
 # # ax.set_title("蛍光ビーズ",fontname='MS Gothic', fontsize=20)
@@ -27,6 +33,13 @@ y = [500, 490, 450, 480, 550]
 x_2 = [500, 550, 580, 500, 530, 610, 540, 440]
 y_2 = [500, 530, 530, 530, 490, 430, 440, 490]
 
+x_random = [500, 800, 740, 700, 760, 790, 720, 900, 603, 550]
+y_random = [500, 620, 810, 630, 790, 700, 540, 690, 570, 650]
+x_triangle_center = [550, 580, 610, 590, 620, 600, 600]
+y_triangle_center = [650, 640, 630, 620, 610, 600, 600,]
+# y_0327_2 = [500, 380, 190, 370, 210, 300, 460, 310, 430, 350]
+
+
 # assign different colors to each point
 colors = [f'C{i}' for i in range(len(x_2))]
 
@@ -34,16 +47,22 @@ colors = [f'C{i}' for i in range(len(x_2))]
 # for i in range(len(x_2)):
 #     ax.scatter(x_2[i], y_2[i], color=colors[i], label=f'Point {i}')
 
-for i in range(len(x_2) - 1):
-    ax.plot([x_2[i], x_2[i+1]], [y_2[i], y_2[i+1]], marker='o', markersize=8, color=f'C{i}', label=f'{i+1}')
-    if i == len(x_2) - 2:
-        ax.plot([x_2[i+1]], [y_2[i+1]], marker='o', markersize=8, color=f'C{i+1}', label=f'{i+2}')
+for i in range(len(x_random) - 1):
+    ax.plot([x_random[i], x_random[i+1]], [y_random[i], y_random[i+1]], marker='o', markersize=8, color='red', label=f'{i+1}')
+    if i == len(x_random) - 2:
+        ax.plot([x_random[i+1]], [y_random[i+1]], marker='o', markersize=8, color='red', label=f'{i+2}')
+
+for j in range(len(x_triangle_center) - 1 ):
+    ax.plot([x_triangle_center[j], x_triangle_center[j+1]], [y_triangle_center[j], y_triangle_center[j+1]], marker='o', markersize=8, color="green")
+    if j == len(x_triangle_center) - 2:
+        ax.plot([x_triangle_center[j+1]], [y_triangle_center[j+1]], marker='o', markersize=8, color='green')
+
 # plt.scatter(x_2, y_2, s=10, c='yellow')
 # plt.plot(x_2, y_2, marker='o', markersize=6, markerfacecolor='yellow')
 ax.legend(fontsize=15)
 # ax.legend(fontsize=10, loc='lower center', bbox_to_anchor=(0.5, -0.2), ncol=len(x_2))
 plt.tight_layout()
-# ax.legend().set_visible(False)
+ax.legend().set_visible(False)
 
 plt.show()
 

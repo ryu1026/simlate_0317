@@ -2,10 +2,11 @@ import numpy as np
 from numpy import ndarray
 
 
-def random_walk(col_pre, row_pre, scale=5, scale_factor=3, dist='nom'):
+def random_walk(col_pre, row_pre, scale=20, scale_factor=3, dist='nom'):
     if dist == 'nom':
         col_pre += np.random.normal(scale=scale)
         row_pre += np.random.normal(scale=scale)
+        # col_pre = np.clip(col_pre, 0, 100)
         # スポットを視野のギリギリの部分には作りたくないので範囲を指定する
         #
         if col_pre < 10:
@@ -34,6 +35,8 @@ def random_walk(col_pre, row_pre, scale=5, scale_factor=3, dist='nom'):
 
         return x_next, y_next
 
+
+
     # if dist == 'int':
     #     col_pre += np.random.randint(10, 90)
     #     row_pre += np.random.normal(10, 90)
@@ -45,7 +48,38 @@ def random_walk(col_pre, row_pre, scale=5, scale_factor=3, dist='nom'):
 
         return col_pre, row_pre
 
+def random_walk_2(col_pre, row_pre, scale=20, scale_factor=3, dist='nom'):
+    if dist == 'nom':
+        col_pre = np.random.normal(scale=scale)
+        row_pre += np.random.normal(scale=scale)
+        # col_pre = np.clip(col_pre, 0, 100)
+        # スポットを視野のギリギリの部分には作りたくないので範囲を指定する
+        #
+        if col_pre < 10:
+            col_pre += abs(np.random.normal(scale=scale*scale_factor))
+        elif col_pre > 90:
+            col_pre -= abs(np.random.normal(scale=scale*scale_factor))
+        else:
+            pass
 
+        col_pre = np.clip(col_pre, 10, 90)
+
+        if row_pre < 10:
+            row_pre += abs(np.random.normal(scale=scale*scale_factor))
+        elif row_pre > 90:
+            row_pre -= abs(np.random.normal(scale=scale*scale_factor))
+        else:
+            pass
+
+        row_pre = np.clip(row_pre, 10, 90)
+
+        return int(col_pre), int(row_pre)
+
+    if dist == 'uni':
+        x_next = np.random.uniform(0, 100)
+        y_next = np.random.uniform(0, 100)
+
+        return x_next, y_next
 def make_triangle_pos(col_pre_pos, row_pre_pos, triangle_radius=6, do_print=False):
     """
     閾値を上回った座標を中心とした3点の座標

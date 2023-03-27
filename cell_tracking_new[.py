@@ -14,7 +14,7 @@ initial_beads = sim.beads_matrix
 # sim.draw_not_gaussian_beads(initial_beads)
 # print("type of initial_beads", initial_beads.dtype)
 
-# cv2.imwrite('initial_beads_2.tiff', initial_beads)
+cv2.imwrite('initial_beads_0327.tiff', initial_beads)
 # animationを表示するときはこの行
 # fig, ax = plt.subplots()
 # im = ax.imshow(sim.beads_matrix, cmap='gray', interpolation='nearest',
